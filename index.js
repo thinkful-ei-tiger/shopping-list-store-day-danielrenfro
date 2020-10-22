@@ -1,9 +1,9 @@
 const store = {
   items: [
-    { id: cuid(), name: 'apples', checked: false },
-    { id: cuid(), name: 'oranges', checked: false },
-    { id: cuid(), name: 'milk', checked: true },
-    { id: cuid(), name: 'bread', checked: false }
+    { id: cuid(), name: 'apples', checked: false, inEdit: false },
+    { id: cuid(), name: 'oranges', checked: false, inEdit: false },
+    { id: cuid(), name: 'milk', checked: true, inEdit: false },
+    { id: cuid(), name: 'bread', checked: false, inEdit: false }
   ],
   hideCheckedItems: false
 };
@@ -16,10 +16,24 @@ const generateItemElement = function (item) {
     `;
   }
 
+  let itemEdit = `<form id="js-edit-form">
+    <label for="edit-item-entry">Edit item name</label>
+    <input type="text" name="edit-item-entry" class="js-edit-item-entry" placeholder="Enter new name">
+    <button class="js-submit-edit" type="submit">Edit item</button>
+  </form>`;
+
+  if (!item.inEdit) {
+    itemEdit = ``;
+  }
+
   return `
     <li class='js-item-element' data-item-id='${item.id}'>
       ${itemTitle}
+      ${itemEdit}
       <div class='shopping-item-controls'>
+        <button class='shopping-item-edit js-item-edit'>
+          <span class='button-label'>edit</span>
+        </button>
         <button class='shopping-item-toggle js-item-toggle'>
           <span class='button-label'>check</span>
         </button>
@@ -63,7 +77,7 @@ const render = function () {
 };
 
 const addItemToShoppingList = function (itemName) {
-  store.items.push({ id: cuid(), name: itemName, checked: false });
+  store.items.push({ id: cuid(), name: itemName, checked: false, inEdit: false });
 };
 
 const handleNewItemSubmit = function () {
@@ -138,12 +152,43 @@ const toggleCheckedItemsFilter = function () {
  * Places an event listener on the checkbox 
  * for hiding completed items.
  */
-const handleToggleFilterClick = function () {
+const handleToggleFilterClicked = function () {
   $('.js-filter-checked').click(() => {
     toggleCheckedItemsFilter();
     render();
   });
 };
+
+const toggleInEdit = function (id) {
+  const foundItem = store.items.find((item) => item.id === id);
+  foundItem.inEdit = !foundItem.inEdit;
+};
+
+const handleEditButtonClicked = function () {
+  $('.js-shopping-list').on('click', '.js-item-edit', event => {
+    const itemId = getItemIdFromElement(event.currentTarget);
+    toggleInEdit(itemId);
+    render();
+  });
+};
+
+const changeItemName = function (id, newName) {
+  const foundItem = store.items.find((item) => item.id === id);
+  foundItem.name = newName;
+}
+
+const handleEditButtonSubmitClicked = function () {
+  $('.js-shopping-list').on('submit', '#js-edit-form', function(event) {
+    event.preventDefault();
+    if ($('.js-edit-item-entry').val() !== '') {
+      const itemId = getItemIdFromElement(event.currentTarget);
+      const newName = $('.js-edit-item-entry').val();
+      changeItemName(itemId, newName);
+      toggleInEdit(itemId);
+    }
+    render();
+  })
+}
 
 /**
  * This function will be our callback when the
@@ -159,7 +204,9 @@ const handleShoppingList = function () {
   handleNewItemSubmit();
   handleItemCheckClicked();
   handleDeleteItemClicked();
-  handleToggleFilterClick();
+  handleToggleFilterClicked();
+  handleEditButtonClicked();
+  handleEditButtonSubmitClicked();
 };
 
 // when the page loads, call `handleShoppingList`
